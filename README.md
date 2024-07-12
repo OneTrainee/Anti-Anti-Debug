@@ -41,6 +41,31 @@ EXTERN_C PPEB PsGetProcessPeb(PEPROCESS Process);
 
 ![alt text](8a8853edfe0a1b41aad26bad2e341723.png)
 
+### BeingDebugged的修改时机
+
+我们下面开一个小灶，研究一下BeingDebugged何时被修改的。
+
+先通过wrk确定其修改位置，其在`DbgkpMarkProcessPeb`中被修改
+
+![alt text](4c751eef15fa9f3b518084099841335e.png)
+
+其函数逆向如下图所示
+
+![alt text](b556e62661294875ed098fdc4905c6f1.png)
+
+`DbgkpMarkProcessPeb`函数被`DbgkpSetProcessDebugObject`函数调用
+
+而`DbgkpSetProcessDebugObject` 被 `NtDebugActiveProcess`函数调用
+
+现在函数的调用思路就清晰了，调试器在设置`DebugObject`的时候，将`PEB.BeingDebugged`给置位
+
+我们重建调试体系时，`DbgkpSetProcessDebugObject`中并没有写`DbgkpMarkProcessPeb`，因此实战中并不用关心该位。
+
+如下图所示，重建调试体系后，其该标志位并没有被察觉到。
+
+![alt text](f1f8343789856372a1f44cc2e6236b3a.png)
+
+
 ## 02 - CheckRemoteDebuggerPresent
 
 该函数也是一个常用来检测调试器的手段，与`IsDebuggerPresent`不同，该函数还可以用来检测其他进程是否存在调试器，传入一个进程句柄即可。
